@@ -68,7 +68,7 @@ Add one of the statements below to your `.drone.yml`.
 
 Use **either** `MESSAGE` **or** `SUCCESS_MESSAGE` + `FAILURE_MESSAGE`. The
 first one will post the same comment regardless of how the pipeline executes up
-to that point. The second two will pick the appropriate message based on the
+to that point. The other two will pick the appropriate message based on the
 pipeline status.
 
 If both `MESSAGE` and any of the other two are used, the stage will fail.
