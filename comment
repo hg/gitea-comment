@@ -12,7 +12,9 @@ die() {
 }
 
 [ -z "${GITEA_TOKEN:-}" ] && die 'GITEA_TOKEN not set'
-[ -z "${GITEA_BASE:-}" ] && die 'GITEA_BASE not set'
+
+base=${CI_FORGE_URL:-${GITEA_BASE:-}}
+[ -z "$base" ] && die 'CI_FORGE_URL / GITEA_BASE not set'
 
 # sanity checks; this shouldn't happen if we were called by CI
 owner=${CI_REPO_OWNER:-${DRONE_REPO_NAMESPACE:-}}
@@ -67,7 +69,7 @@ curl \
   --header "Authorization: token $GITEA_TOKEN" \
   --json "@$body" \
   --output "$resp" \
-  "$GITEA_BASE/api/v1/repos/$owner/$repository/issues/$pull_request/comments"
+  "$base/api/v1/repos/$owner/$repository/issues/$pull_request/comments"
 
 jq --color-output . <"$resp"
 

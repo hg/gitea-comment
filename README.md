@@ -17,6 +17,8 @@ Add this token as a secret in your Drone/Woodpecker repo configuration.
 
 Add one of the statements below to your `.drone.yml` / `.woodpecker.yml`.
 
+`GITEA_BASE` can be omitted under Woodpecker.
+
 ### Notify of both success and failure
 
 ```yaml
