@@ -1,9 +1,10 @@
 # `drone-gitea-comment`
 
-This is a basic Docker image that allows you to leave comments in Gitea pull
-requests from Drone pipelines, on success or failure. I didn't like existing
-alternatives because the program itself is super simple, and they pulled in
-heavy runtimes such as .NET to run just a couple of dozen lines of code.
+This is a basic Docker image that allows you to leave comments in Gitea or
+Forgejo pull requests from Drone or Woodpecker pipelines, on success or
+failure. I didn't like existing alternatives because the program itself is
+super simple, and they pulled in heavy runtimes such as .NET to run just a
+couple of dozen lines of code.
 
 ## Usage
 
@@ -12,20 +13,22 @@ Applications → Manage Access Tokens.
 
 Create a new token that has only one permission: "issue: Read and Write".
 
-Add this token as a secret in your Drone repo configuration.
+Add this token as a secret in your Drone/Woodpecker repo configuration.
 
-Add one of the statements below to your `.drone.yml`.
+Add one of the statements below to your `.drone.yml` / `.woodpecker.yml`.
 
 ### Notify of both success and failure
 
 ```yaml
 - name: comment
-  image: ghcr.io/hg/gitea-comment:v1
+  image: ghcr.io/hg/gitea-comment:v2
+  commands:
+    - comment
   environment:
     GITEA_BASE: https://gitea.example.com
-    GITEA_TOKEN: { from_secret: GITEA_TOKEN } # add as secret in drone repo configuration
-    SUCCESS_MESSAGE: "✅ Build finished [successfully]($DRONE_BUILD_LINK)."
-    FAILURE_MESSAGE: "🚫 Build finished with [errors]($DRONE_BUILD_LINK)."
+    GITEA_TOKEN: { from_secret: GITEA_TOKEN } # add as a secret in CI repo configuration
+    SUCCESS_MESSAGE: "✅ Build finished [successfully]($CI_PIPELINE_URL)."
+    FAILURE_MESSAGE: "🚫 Build finished with [errors]($CI_PIPELINE_URL)."
     MESSAGE: |
       This is a generic message that will be used regardless of pipeline
       execution status. If you use this property, omit SUCCESS_MESSAGE and
@@ -39,13 +42,13 @@ Add one of the statements below to your `.drone.yml`.
 
 ```yaml
 - name: notify of failure
-  image: ghcr.io/hg/gitea-comment:v1
+  image: ghcr.io/hg/gitea-comment:v2
   environment:
     GITEA_BASE: https://gitea.example.com
     GITEA_TOKEN: { from_secret: GITEA_TOKEN }
     MESSAGE: |
-      Build №$DRONE_BUILD_NUMBER has failed.
-      Please look [here]($DRONE_BUILD_LINK) for more information.
+      Workflow $CI_WORKFLOW_NAME has failed.
+      Please look [here]($CI_PIPELINE_URL) for more information.
   when:
     status: [failure]
     event: pull_request
@@ -55,11 +58,11 @@ Add one of the statements below to your `.drone.yml`.
 
 ```yaml
 - name: notify of success
-  image: ghcr.io/hg/gitea-comment:v1
+  image: ghcr.io/hg/gitea-comment:v2
   environment:
     GITEA_BASE: https://gitea.example.com
     GITEA_TOKEN: { from_secret: GITEA_TOKEN }
-    MESSAGE: "Build №$DRONE_BUILD_NUMBER finished [successfully]($DRONE_BUILD_LINK)."
+    MESSAGE: "Pipeline $CI_PIPELINE_NUMBER finished [successfully]($CI_PIPELINE_URL)."
   when:
     event: pull_request
 ```

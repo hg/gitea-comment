@@ -14,10 +14,15 @@ die() {
 [ -z "${GITEA_TOKEN:-}" ] && die 'GITEA_TOKEN not set'
 [ -z "${GITEA_BASE:-}" ] && die 'GITEA_BASE not set'
 
-# sanity checks; this shouldn't happen if we were called by Drone
-[ -z "${DRONE_REPO_NAMESPACE:-}" ] && die 'DRONE_REPO_NAMESPACE not set'
-[ -z "${DRONE_REPO_NAME:-}" ] && die 'DRONE_REPO_NAME not set'
-[ -z "${DRONE_PULL_REQUEST:-}" ] && die 'DRONE_PULL_REQUEST not set'
+# sanity checks; this shouldn't happen if we were called by CI
+owner=${CI_REPO_OWNER:-${DRONE_REPO_NAMESPACE:-}}
+[ -z "$owner" ] && die 'CI_REPO_OWNER / DRONE_REPO_NAMESPACE not set'
+
+repository=${CI_REPO_NAME:-${DRONE_REPO_NAME:-}}
+[ -z "$repository" ] && die 'CI_REPO_NAME / DRONE_REPO_NAME not set'
+
+pull_request=${CI_COMMIT_PULL_REQUEST:-${DRONE_PULL_REQUEST:-}}
+[ -z "$pull_request" ] && die 'CI_COMMIT_PULL_REQUEST / DRONE_PULL_REQUEST not set'
 
 if [ -n "${MESSAGE:-}" ]; then
   [ -z "${SUCCESS_MESSAGE:-}" ] || die 'please set either SUCCESS_MESSAGE or MESSAGE'
@@ -25,7 +30,9 @@ if [ -n "${MESSAGE:-}" ]; then
   note 'using text from MESSAGE'
   message="$MESSAGE"
 else
-  if [ "$DRONE_STAGE_STATUS" = success ]; then
+  status=${CI_PIPELINE_STATUS:-${DRONE_STAGE_STATUS:-}}
+
+  if [ "$status" = success ]; then
     note 'using text from SUCCESS_MESSAGE'
     message="${SUCCESS_MESSAGE:-}"
   else
@@ -60,7 +67,7 @@ curl \
   --header "Authorization: token $GITEA_TOKEN" \
   --json "@$body" \
   --output "$resp" \
-  "$GITEA_BASE/api/v1/repos/$DRONE_REPO_NAMESPACE/$DRONE_REPO_NAME/issues/$DRONE_PULL_REQUEST/comments"
+  "$GITEA_BASE/api/v1/repos/$owner/$repository/issues/$pull_request/comments"
 
 jq --color-output . <"$resp"
 
