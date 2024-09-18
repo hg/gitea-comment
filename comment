@@ -32,7 +32,7 @@ if [ -n "${MESSAGE:-}" ]; then
   note 'using text from MESSAGE'
   message="$MESSAGE"
 else
-  status=${CI_PIPELINE_STATUS:-${DRONE_STAGE_STATUS:-}}
+  status=${CI_PREV_PIPELINE_STATUS:-${DRONE_STAGE_STATUS:-}}
 
   if [ "$status" = success ]; then
     note 'using text from SUCCESS_MESSAGE'
