@@ -23,8 +23,7 @@ owner=${CI_REPO_OWNER:-${DRONE_REPO_NAMESPACE:-}}
 repository=${CI_REPO_NAME:-${DRONE_REPO_NAME:-}}
 [ -z "$repository" ] && die 'CI_REPO_NAME / DRONE_REPO_NAME not set'
 
-pull_request=${CI_COMMIT_PULL_REQUEST:-${DRONE_PULL_REQUEST:-}}
-[ -z "$pull_request" ] && die 'CI_COMMIT_PULL_REQUEST / DRONE_PULL_REQUEST not set'
+pr=${CI_COMMIT_PULL_REQUEST:-${DRONE_PULL_REQUEST:-}}
 
 if [ -n "${MESSAGE:-}" ]; then
   [ -z "${SUCCESS_MESSAGE:-}" ] || die 'please set either SUCCESS_MESSAGE or MESSAGE'
@@ -61,16 +60,37 @@ resp=$(mktemp)
 
 echo "$message" | envsubst | jq --raw-input '{ body: . }' >"$body"
 
-curl \
-  --location \
-  --silent \
-  --show-error \
-  --fail-with-body \
-  --header "Authorization: token $GITEA_TOKEN" \
-  --json "@$body" \
-  --output "$resp" \
-  "$base/api/v1/repos/$owner/$repository/issues/$pull_request/comments"
+comment() {
+  curl \
+    --location \
+    --silent \
+    --show-error \
+    --fail-with-body \
+    --header "Authorization: token $GITEA_TOKEN" \
+    --json "@$body" \
+    --output "$resp" \
+    "$base/api/v1/repos/$1/issues/$2/comments"
 
-jq --color-output . <"$resp"
+  jq --color-output . <"$resp"
+}
+
+comments=$(mktemp)
+(
+  git log --no-patch --format=%B origin/"$CI_COMMIT_BRANCH"..HEAD || :
+  git show --no-patch --format=%B HEAD || :
+) | grep -v -i -E '^WIP:' >"$comments"
+
+(
+  if [ -n "$pr" ]; then
+    echo "$owner/$repository" "$pr"
+  fi
+  sed -E -n 's~.*https?://[^/]+/([^/]+/[^/]+)/(issues|pulls)/([[:digit:]]+).*~\1 \3~p' "$comments" # https://git.example.com/owner/repo/issues/555
+  sed -E -n 's~.*\b([-._[:alnum:]]+/[-._[:alnum:]]+)[#!]([[:digit:]]+).*~\1 \2~p' "$comments"      # owner/repo#836
+  sed -E -n "s~.*[#!]([[:digit:]]+).*~$CI_REPO \1~p" "$comments"                                   # #836
+) |
+  sort -u |
+  while read -r repo iss; do
+    comment "$repo" "$iss"
+  done
 
 rm -f "$body" "$resp"
