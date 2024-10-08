@@ -74,6 +74,8 @@ comment() {
   jq --color-output . <"$resp"
 }
 
+git config --global --add safe.directory "$CI_WORKSPACE"
+
 comments=$(mktemp)
 (
   git log --no-patch --format=%B origin/"$CI_COMMIT_BRANCH"..HEAD || :
