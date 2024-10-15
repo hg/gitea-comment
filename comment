@@ -33,12 +33,12 @@ if [ -n "${MESSAGE:-}" ]; then
 else
   status=${CI_PREV_PIPELINE_STATUS:-${DRONE_STAGE_STATUS:-}}
 
-  if [ "$status" = success ]; then
-    note 'using text from SUCCESS_MESSAGE'
-    message="${SUCCESS_MESSAGE:-}"
-  else
+  if [ "$status" = failure ]; then
     note 'using text from FAILURE_MESSAGE'
     message="${FAILURE_MESSAGE:-}"
+  else
+    note 'using text from SUCCESS_MESSAGE'
+    message="${SUCCESS_MESSAGE:-}"
   fi
 fi
 
@@ -80,7 +80,7 @@ comments=$(mktemp)
 (
   git log --no-patch --format=%B origin/"$CI_COMMIT_BRANCH"..HEAD || :
   git show --no-patch --format=%B HEAD || :
-) | grep -v -i -E '^WIP:' >"$comments"
+) 2>/dev/null | grep -v -i -E '^WIP:' >"$comments"
 
 (
   if [ -n "$pr" ]; then
