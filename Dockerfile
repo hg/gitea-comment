@@ -1,4 +1,4 @@
-FROM alpine:3.20
+FROM alpine:3.22
 WORKDIR /bin
 
 RUN apk add --no-cache curl jq gettext-envsubst git && \

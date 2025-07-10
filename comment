@@ -44,10 +44,10 @@ fi
 
 if [ -z "$message" ]; then
   die 'no message was passed; use either of
-  message: this text is printed on success of failure
+  MESSAGE: this text is printed on success of failure
 or
-  success_message: this text is printed on success
-  failure_message: this text is printed on failure'
+  SUCCESS_MESSAGE: this text is printed on success
+  FAILURE_MESSAGE: this text is printed on failure'
 fi
 
 if [ -f "$message" ]; then
@@ -85,6 +85,14 @@ comments=$(mktemp)
 (
   if [ -n "$pr" ]; then
     echo "$owner/$repository" "$pr"
+  fi
+  if [ -n "${ISSUES:-}" ]; then
+    (
+      IFS=','
+      for id in $ISSUES; do
+        echo "$owner/$repository" "$id"
+      done
+    )
   fi
   sed -E -n 's~.*https?://[^/]+/([^/]+/[^/]+)/(issues|pulls)/([[:digit:]]+).*~\1 \3~p' "$comments" # https://git.example.com/owner/repo/issues/555
   sed -E -n 's~.*\b([-._[:alnum:]]+/[-._[:alnum:]]+)[#!]([[:digit:]]+).*~\1 \2~p' "$comments"      # owner/repo#836

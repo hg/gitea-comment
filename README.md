@@ -23,7 +23,7 @@ Add one of the statements below to your `.drone.yml` / `.woodpecker.yml`.
 
 ```yaml
 - name: comment
-  image: ghcr.io/hg/gitea-comment:v2
+  image: ghcr.io/hg/gitea-comment:v4
   commands:
     - comment
   environment:
@@ -44,7 +44,7 @@ Add one of the statements below to your `.drone.yml` / `.woodpecker.yml`.
 
 ```yaml
 - name: notify of failure
-  image: ghcr.io/hg/gitea-comment:v2
+  image: ghcr.io/hg/gitea-comment:v4
   environment:
     GITEA_BASE: https://gitea.example.com
     GITEA_TOKEN: { from_secret: GITEA_TOKEN }
@@ -60,13 +60,27 @@ Add one of the statements below to your `.drone.yml` / `.woodpecker.yml`.
 
 ```yaml
 - name: notify of success
-  image: ghcr.io/hg/gitea-comment:v2
+  image: ghcr.io/hg/gitea-comment:v4
   environment:
     GITEA_BASE: https://gitea.example.com
     GITEA_TOKEN: { from_secret: GITEA_TOKEN }
     MESSAGE: "Pipeline $CI_PIPELINE_NUMBER finished [successfully]($CI_PIPELINE_URL)."
   when:
     event: pull_request
+```
+
+### Notify specific issues
+
+```yaml
+- name: notify of success
+  image: ghcr.io/hg/gitea-comment:v4
+  environment:
+    GITEA_BASE: https://gitea.example.com
+    GITEA_TOKEN: { from_secret: GITEA_TOKEN }
+    MESSAGE: |
+      This message is posted to issues #123, #456, and #9814
+      To post to just one issue, list it and skip the comma.
+    ISSUES: 123,456,9814
 ```
 
 ## Message text
