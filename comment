@@ -80,6 +80,10 @@ comments=$(mktemp)
 (
   git log --no-patch --format=%B origin/"$CI_COMMIT_BRANCH"..HEAD || :
   git show --no-patch --format=%B HEAD || :
+
+  if [ -n "${CI_COMMIT_SOURCE_BRANCH:-}" ]; then
+    git log --no-patch --format=%B origin/"$CI_COMMIT_TARGET_BRANCH".."$CI_COMMIT_SOURCE_BRANCH" || :
+  fi
 ) 2>/dev/null | grep -v -i -E '^WIP:' >"$comments"
 
 (
