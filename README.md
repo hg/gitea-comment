@@ -80,8 +80,15 @@ Add one of the statements below to your `.drone.yml` / `.woodpecker.yml`.
     MESSAGE: |
       This message is posted to issues #123, #456, and #9814
       To post to just one issue, list it and skip the comma.
-    ISSUES: 123,456,9814
+    COMMENT_ON: pr,issues,123,456,9814
 ```
+
+The `COMMENT_ON` variable can contain any of the following tokens separated by
+commas:
+
+- `pr` to comment on the current pull request, if any
+- `issues` to comment on issues referenced in commit messages
+- `123,456` to comment on issue `#123`, `#456`, etc
 
 ## Message text
 

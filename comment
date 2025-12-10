@@ -11,6 +11,12 @@ die() {
   exit 1
 }
 
+COMMENT_ON=${COMMENT_ON:-pr,issues}
+
+send_to() {
+  echo "$COMMENT_ON" | grep -q -w "$1"
+}
+
 [ -z "${GITEA_TOKEN:-}" ] && die 'GITEA_TOKEN not set'
 
 base=${CI_FORGE_URL:-${GITEA_BASE:-}}
@@ -22,8 +28,6 @@ owner=${CI_REPO_OWNER:-${DRONE_REPO_NAMESPACE:-}}
 
 repository=${CI_REPO_NAME:-${DRONE_REPO_NAME:-}}
 [ -z "$repository" ] && die 'CI_REPO_NAME / DRONE_REPO_NAME not set'
-
-pr=${CI_COMMIT_PULL_REQUEST:-${DRONE_PULL_REQUEST:-}}
 
 if [ -n "${MESSAGE:-}" ]; then
   [ -z "${SUCCESS_MESSAGE:-}" ] || die 'please set either SUCCESS_MESSAGE or MESSAGE'
@@ -77,30 +81,39 @@ comment() {
 git config --global --add safe.directory "$CI_WORKSPACE"
 
 comments=$(mktemp)
-(
-  git log --no-patch --format=%B origin/"$CI_COMMIT_BRANCH"..HEAD || :
-  git show --no-patch --format=%B HEAD || :
 
-  if [ -n "${CI_COMMIT_SOURCE_BRANCH:-}" ]; then
-    git log --no-patch --format=%B origin/"$CI_COMMIT_TARGET_BRANCH".."$CI_COMMIT_SOURCE_BRANCH" || :
-  fi
-) 2>/dev/null | grep -v -i -E '^WIP:' >"$comments"
+if send_to issues; then
+  (
+    log() {
+      git log --no-patch --format=%B "origin/$1..origin/$2" || :
+    }
+
+    git show --no-patch --format=%B HEAD || :
+    log "$CI_COMMIT_BRANCH" HEAD
+
+    [ -n "${CI_COMMIT_SOURCE_BRANCH:-}" ] &&
+      log "$CI_COMMIT_TARGET_BRANCH" "$CI_COMMIT_SOURCE_BRANCH"
+  ) 2>/dev/null | grep -v -i -E '^WIP:' >"$comments"
+fi
 
 (
-  if [ -n "$pr" ]; then
-    echo "$owner/$repository" "$pr"
+  if send_to pr; then
+    pr="${CI_COMMIT_PULL_REQUEST:-${DRONE_PULL_REQUEST:-}}"
+
+    if [ -n "$pr" ]; then
+      echo "$owner/$repository" "$pr"
+    fi
   fi
-  if [ -n "${ISSUES:-}" ]; then
-    (
-      IFS=','
-      for id in $ISSUES; do
-        echo "$owner/$repository" "$id"
-      done
-    )
+
+  echo "$COMMENT_ON" | grep -E -o '\d+' | while read -r id; do
+    echo "$owner/$repository" "$id"
+  done
+
+  if [ -s "$comments" ]; then
+    sed -E -n 's~.*https?://[^/]+/([^/]+/[^/]+)/(issues|pulls)/([[:digit:]]+).*~\1 \3~p' "$comments" # https://git.example.com/owner/repo/issues/555
+    sed -E -n 's~.*\b([-._[:alnum:]]+/[-._[:alnum:]]+)[#!]([[:digit:]]+).*~\1 \2~p' "$comments"      # owner/repo#836
+    sed -E -n "s~.*[#!]([[:digit:]]+).*~$CI_REPO \1~p" "$comments"                                   # #836
   fi
-  sed -E -n 's~.*https?://[^/]+/([^/]+/[^/]+)/(issues|pulls)/([[:digit:]]+).*~\1 \3~p' "$comments" # https://git.example.com/owner/repo/issues/555
-  sed -E -n 's~.*\b([-._[:alnum:]]+/[-._[:alnum:]]+)[#!]([[:digit:]]+).*~\1 \2~p' "$comments"      # owner/repo#836
-  sed -E -n "s~.*[#!]([[:digit:]]+).*~$CI_REPO \1~p" "$comments"                                   # #836
 ) |
   sort -u |
   while read -r repo iss; do
